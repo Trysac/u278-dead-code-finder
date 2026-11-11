@@ -3,27 +3,23 @@
 ## Running
 
 ```sh
-uv run pytest --cov=dead_code_finder   # tests with coverage report
-uv run python scripts/check.py      # every gate, as CI and the factory run it
+pytest tests/test_dead_code_finder.py
 ```
 
 ## Policy
 
-- Branch coverage of `src/dead_code_finder` must stay at or above 80 %; the gate fails below it.
-- Tests exercise the public API (`import dead_code_finder`) and assert every observable effect:
-  return values, raised exceptions and their messages.
-- Each bug fix starts with a failing test that reproduces it.
-- Tests are deterministic: no network, no wall clock, no dependence on test order.
+- Tests call the public `scan_sources` API and assert exact `Report.findings` and `Report.errors` values using `Finding` objects.
+- Cases are deterministic and in-memory; they do not use the network, wall clock or test-order dependence.
+- The test module covers import binding, cross-module references, unused definitions, base-class references, decorator references and method references.
 
 ## Tiers
 
-- Local tier (every gate run, coverage measured here): unit and property tests, plus conformance on small
-  fixtures kept in the repository.
-- CI tier: conformance that needs an external tool or a download. Mark them `@pytest.mark.conformance`; `scripts/check.py` deselects them locally
-  (unless `FABRICA_CI=1`). The CI `conformance` job sets `FABRICA_CI=1` and runs the full suite. Tools are installed
-  by the optional `ci/conformance-setup.sh` (bash, CI only; verify every download against a pinned SHA-256), and
-  tagged tests skip cleanly when their tool is missing.
+- The source contains one pytest tier: `tests/test_dead_code_finder.py`.
+- No marker-based CI/conformance tier or external-tool setup is present in this source tree.
 
 ## Layout
 
-`tests/test_<module>.py` mirrors each public module. Shared fixtures go in `tests/conftest.py`.
+`tests/test_dead_code_finder.py` is the test module. Its tests include:
+
+- `test_unused_import`, `test_import_alias_binds_alias`, `test_import_dotted_binds_first_segment`, `test_from_import_binds_name`, `test_star_import_ignored`: import binding and unused-import reporting.
+- `test_unused_function`, `test_cross_module_used`, `test_unused_class`, `test_base_class_reference_counts`, `test_decorator_reference_counts`, `test_unused_method`: definition references and unused definitions.
