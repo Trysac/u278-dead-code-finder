@@ -219,8 +219,10 @@ def test_overload_always_exempt() -> None:
 
 
 def test_scan_errors_syntax_and_large_and_decode(tmp_path: Path) -> None:
-    (tmp_path / "bad.py").write_text("def (\n")
-    (tmp_path / "good.py").write_text("import os\n")
+    (tmp_path / "bad.py").write_text("def (\n", newline="")
+    # Use newline="" so the size stays 10 bytes on Windows too
+    # (default text mode would translate "\n" into "\r\n").
+    (tmp_path / "good.py").write_text("import os\n", newline="")
     large = tmp_path / "large.py"
     large.write_text("x" * 11)
     bad_bytes = tmp_path / "bad_bytes.py"
