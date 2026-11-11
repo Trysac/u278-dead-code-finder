@@ -2,28 +2,40 @@
 
 ## Purpose
 
-`trysac-dead-code-finder` is a small, dependency-free Python library: Find dead Python code with ast across a set of modules: unused imports, functions, classes and methods, plus unreachable statements, with confidence scores
+`trysac-dead-code-finder` performs name-based whole-program analysis with `ast`: unused imports, functions, classes, methods, module-level variables and unreachable statements, with confidence scores.
 
 ## Shape
 
 ```text
-caller code --> dead_code_finder (public API in __init__.py)
-                    |
-                    +-- pure functions, no I/O, no global state
+caller
+  -> dead_code_finder.scan_sources(sources)
+       -> ast.parse each module
+       -> collect definitions (module/class scope, module-level assignments and imports)
+       -> collect references across all parsed modules
+       -> append unused findings and unreachable findings
+       -> sort by (module, line, name)
+  -> dead_code_finder.scan(paths)
+       -> discover and read .py files with limits and excludes
+       -> call scan_sources
+       -> merge file errors with parse errors
+  -> format_text / format_json
+  -> dead_code_finder.__main__.main -> CLI exit code
 ```
 
-- **Public API**: the names listed in `__all__` of `src/dead_code_finder/__init__.py`. Anything else is
-  internal and may change without a major version.
-- **Errors**: invalid input raises built-in exceptions (`ValueError`, `TypeError`) with a clear
-  message; the library never prints or exits.
-- **Side effects**: none. If a feature needs I/O, isolate it in its own module behind a small
-  interface and record the choice in an ADR.
+- **Public API**: the names in `__all__` of `src/dead_code_finder/__init__.py`.
+- **Internal helpers**: underscore-prefixed functions in the same module collect definitions, references, exemptions and unreachable statements.
+- **Errors**: `DeadCodeError(code)` with `invalid_path` or `too_many_files`; per-file and parse problems are returned in `Report.errors`.
+- **Side effects**: `scan_sources` works on in-memory strings; `scan` reads files; the CLI prints. Library logging uses `logging.getLogger(__name__)` with a `NullHandler`.
 
 ## Quality contract
 
-`scripts/check.py` is the single definition of the gates; `fabrica.json` tells the factory and CI
-how to run it. See [TESTING.md](TESTING.md).
+- The package ships `src/dead_code_finder/py.typed`.
+- `Finding` and `Report` are frozen dataclasses.
+- `tests/test_dead_code_finder.py` asserts exact findings and errors from `scan_sources`.
+- The package imports only the Python standard library.
 
 ## Decisions
 
-Architecture decisions are recorded in [decisions/](decisions/) as numbered ADRs.
+- Analysis is name-based across all scanned modules; attribute access such as `x.m` keeps every method named `m`.
+- Confidence is fixed per kind: 90 for unused imports, 60 for unused functions, classes, methods and variables, 50 for decorated functions or methods with `include_decorated=True`, and 100 for unreachable code.
+- Exemptions cover `__all__`, dunders, `_`, whitelist patterns, test functions and classes, `setUp`, `tearDown`, `typing.overload` and decorated definitions by default.

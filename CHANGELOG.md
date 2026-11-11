@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- feat: initial implementation of dead_code_finder with scan_sources, scan, text/JSON formatting, and CLI
 - Initial project structure from the factory utility template.

@@ -19,6 +19,9 @@ classifiers = [
 ]
 dependencies = []
 
+[project.scripts]
+dead-code-finder = "dead_code_finder.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/Trysac/u278-dead-code-finder"
 Source = "https://github.com/Trysac/u278-dead-code-finder"
